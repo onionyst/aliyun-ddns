@@ -1,0 +1,13 @@
+services:
+  app:
+    container_name: aliyun-ddns
+    env_file: .env
+    image: onionyst/aliyun-ddns:latest
+    init: true
+    networks:
+      - net
+    restart: always
+
+networks:
+  net:
+    name: aliyun-ddns-net
