@@ -1,12 +1,14 @@
 package main
 
 import (
-	"aliyun-ddns/internal/pkg/net"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	alidns "github.com/aliyun/alibaba-cloud-sdk-go/services/alidns"
+
+	"aliyun-ddns/internal/pkg/net"
 )
 
 const (
@@ -69,28 +71,32 @@ func main() {
 			panic(err)
 		}
 
-		subDomain := fmt.Sprintf("%s.%s", rr, domain)
-		recordID, domainIP, err := client.getSubDomainRecordIDAndIP(subDomain)
-		if err != nil {
-			panic(err)
-		}
-
 		ip, err := net.GetIP()
 		if err != nil {
 			panic(err)
 		}
 
-		if ip == domainIP {
-			// already match
-			fmt.Printf("Current domain IP already match: %s\n", ip)
-
-		} else {
-			err = client.updateDomainRecord(recordID, rr, ip)
+		rrs := strings.Split(rr, ",")
+		for _, subRR := range rrs {
+			subDomain := fmt.Sprintf("%s.%s", subRR, domain)
+			recordID, domainIP, err := client.getSubDomainRecordIDAndIP(subDomain)
 			if err != nil {
 				panic(err)
 			}
 
-			fmt.Printf("Updated domain IP to: %s\n", ip)
+			if domainIP == ip {
+				// already match
+				fmt.Printf("Domain %s IP already match: %s\n", subDomain, ip)
+
+			} else {
+				err = client.updateDomainRecord(recordID, rr, ip)
+				if err != nil {
+					panic(err)
+				}
+
+				fmt.Printf("Updated domain %s IP to: %s\n", subDomain, ip)
+			}
+
 		}
 
 		time.Sleep(interval * time.Second)
