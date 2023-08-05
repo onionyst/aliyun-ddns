@@ -89,7 +89,7 @@ func main() {
 				fmt.Printf("Domain %s IP already match: %s\n", subDomain, ip)
 
 			} else {
-				err = client.updateDomainRecord(recordID, rr, ip)
+				err = client.updateDomainRecord(recordID, subRR, ip)
 				if err != nil {
 					panic(err)
 				}
