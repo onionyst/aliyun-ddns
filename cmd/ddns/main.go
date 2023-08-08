@@ -12,7 +12,9 @@ import (
 )
 
 const (
-	interval = 600 // seconds
+	interval      = 600 // seconds
+	retry         = 3
+	retryInterval = 5 // seconds
 )
 
 type Client struct {
@@ -30,20 +32,24 @@ func (c *Client) init(regionID, accessKeyID, accessKeySecret string) error {
 }
 
 func (c *Client) getSubDomainRecordIDAndIP(subDomain string) (string, string, error) {
-	req := alidns.CreateDescribeSubDomainRecordsRequest()
-	req.SubDomain = subDomain
+	var err error
+	for i := 0; i < retry; i++ {
+		req := alidns.CreateDescribeSubDomainRecordsRequest()
+		req.SubDomain = subDomain
 
-	res, err := c.DescribeSubDomainRecords(req)
-	if err != nil {
-		return "", "", err
+		res, err := c.DescribeSubDomainRecords(req)
+		if err == nil && res.TotalCount >= 1 {
+			record := res.DomainRecords.Record[0]
+			return record.RecordId, record.Value, nil
+		}
+
+		if err == nil {
+			err = fmt.Errorf("no domain record for %s", subDomain)
+		}
+		time.Sleep(retryInterval * time.Second)
 	}
-	if res.TotalCount < 1 {
-		return "", "", fmt.Errorf("no domain record for %s", subDomain)
-	}
 
-	record := res.DomainRecords.Record[0]
-
-	return record.RecordId, record.Value, nil
+	return "", "", err
 }
 
 func (c *Client) updateDomainRecord(recordID, rr, ip string) error {
