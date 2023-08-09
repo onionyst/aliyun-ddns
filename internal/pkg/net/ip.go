@@ -8,13 +8,31 @@ import (
 )
 
 const (
-	regexIPv4 = `(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d)\.(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d)\.(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d)\.(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d)`
-	ipURL     = "http://cip.cc"
-	timeout   = 5 // seconds
+	regexIPv4     = `(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d)\.(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d)\.(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d)\.(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d)`
+	ipURL         = "http://cip.cc"
+	timeout       = 10 // seconds
+	retry         = 3
+	retryInterval = 10 // seconds
 )
 
 // TODO: support multiple IP urls with channel, make this robust
 func GetIP() (string, error) {
+	var retErr error
+	for i := 0; i < retry; i++ {
+		ip, err := getIP()
+		if err == nil {
+			return ip, nil
+		}
+
+		retErr = err
+		time.Sleep(retryInterval * time.Second)
+		continue
+	}
+
+	return "", retErr
+}
+
+func getIP() (string, error) {
 	req, err := http.NewRequest("GET", ipURL, nil)
 	if err != nil {
 		return "", err

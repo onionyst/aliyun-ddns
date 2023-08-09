@@ -14,7 +14,7 @@ import (
 const (
 	interval      = 600 // seconds
 	retry         = 3
-	retryInterval = 5 // seconds
+	retryInterval = 10 // seconds
 )
 
 type Client struct {
@@ -32,24 +32,19 @@ func (c *Client) init(regionID, accessKeyID, accessKeySecret string) error {
 }
 
 func (c *Client) getSubDomainRecordIDAndIP(subDomain string) (string, string, error) {
-	var err error
+	var retErr error
 	for i := 0; i < retry; i++ {
-		req := alidns.CreateDescribeSubDomainRecordsRequest()
-		req.SubDomain = subDomain
-
-		res, err := c.DescribeSubDomainRecords(req)
-		if err == nil && res.TotalCount >= 1 {
-			record := res.DomainRecords.Record[0]
-			return record.RecordId, record.Value, nil
-		}
-
+		recordID, domainIP, err := c._getSubDomainRecordIDAndIP(subDomain)
 		if err == nil {
-			err = fmt.Errorf("no domain record for %s", subDomain)
+			return recordID, domainIP, nil
 		}
+
+		retErr = err
 		time.Sleep(retryInterval * time.Second)
+		continue
 	}
 
-	return "", "", err
+	return "", "", retErr
 }
 
 func (c *Client) updateDomainRecord(recordID, rr, ip string) error {
@@ -61,6 +56,22 @@ func (c *Client) updateDomainRecord(recordID, rr, ip string) error {
 
 	_, err := c.UpdateDomainRecord(req)
 	return err
+}
+
+func (c *Client) _getSubDomainRecordIDAndIP(subDomain string) (string, string, error) {
+	req := alidns.CreateDescribeSubDomainRecordsRequest()
+	req.SubDomain = subDomain
+
+	res, err := c.DescribeSubDomainRecords(req)
+	if err != nil {
+		return "", "", err
+	}
+	if res.TotalCount < 1 {
+		return "", "", fmt.Errorf("no domain record for %s", subDomain)
+	}
+
+	record := res.DomainRecords.Record[0]
+	return record.RecordId, record.Value, nil
 }
 
 func main() {
