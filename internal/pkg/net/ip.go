@@ -12,7 +12,7 @@ const (
 	ipURL         = "http://cip.cc"
 	timeout       = 10 // seconds
 	retry         = 3
-	retryInterval = 10 // seconds
+	retryInterval = 30 // seconds
 )
 
 // TODO: support multiple IP urls with channel, make this robust

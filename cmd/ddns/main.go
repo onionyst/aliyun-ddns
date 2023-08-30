@@ -14,7 +14,7 @@ import (
 const (
 	interval      = 600 // seconds
 	retry         = 3
-	retryInterval = 10 // seconds
+	retryInterval = 60 // seconds
 )
 
 type Client struct {
